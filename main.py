@@ -10,10 +10,11 @@ timezone = pytz.timezone('America/Sao_Paulo')
 
 # Diretório de download para GitHub Actions
 download_dir = "/tmp"
+
+# Cria o diretório, se não existir
 os.makedirs(download_dir, exist_ok=True)
 
 def login(page):
-    print("🔑 Iniciando login...")
     page.goto("https://spx.shopee.com.br/")
     page.wait_for_selector('xpath=//*[@placeholder="Ops ID"]', timeout=15000)
     page.fill('xpath=//*[@placeholder="Ops ID"]', 'Ops322349')
@@ -24,113 +25,85 @@ def login(page):
     try:
         page.click('css=.ssc-dialog-close', timeout=5000)
     except:
+        print("Nenhum pop-up foi encontrado.")
         page.keyboard.press("Escape")
 
-def get_dual_data(page):
-    data_atual = []
-    data_anterior = []
-    
-    print("\n📊 Coletando dados via XPaths Diretos (1ª e 2ª Coluna)...")
+def get_data(page):
+    data = []
     try:
-        # 1. INBOUND (Historical Data)
+        # Primeiro link
         page.goto("https://spx.shopee.com.br/#/dashboard/facility-soc/historical-data")
+        #page.wait_for_selector('xpath=//*[@id="mgmt-dashboard-content"]/div/div/div[2]/div/div[3]/div[2]/div/div[2]/div[1]/div/div/div[2]/div[2]/div[1]/div/div[2]/div/div/canvas', timeout=45000)
         page.wait_for_timeout(10000)
-        # Nota: Mantive td[25] para a Atual (seu original) e td[26] para Anterior. 
-        # Se o Inbound crescer para o outro lado, basta inverter para td[24].
-        inbound_atual = page.inner_text('xpath=/html[1]/body[1]/div[1]/div[1]/div[2]/div[2]/div[1]/div[1]/div[1]/div[1]/div[2]/div[1]/div[2]/div[2]/div[1]/div[2]/div[1]/div[1]/div[1]/div[2]/div[2]/div[2]/div[1]/div[1]/div[1]/table[1]/tbody[1]/tr[2]/td[25]')
-        inbound_ant = page.inner_text('xpath=/html[1]/body[1]/div[1]/div[1]/div[2]/div[2]/div[1]/div[1]/div[1]/div[1]/div[2]/div[1]/div[2]/div[2]/div[1]/div[2]/div[1]/div[1]/div[1]/div[2]/div[2]/div[2]/div[1]/div[1]/div[1]/table[1]/tbody[1]/tr[2]/td[26]')
-        data_atual.append(inbound_atual)
-        data_anterior.append(inbound_ant)
-        print("   [OK] Inbound")
+        first_value = page.inner_text('xpath=/html[1]/body[1]/div[1]/div[1]/div[2]/div[2]/div[1]/div[1]/div[1]/div[1]/div[2]/div[1]/div[2]/div[2]/div[1]/div[2]/div[1]/div[1]/div[1]/div[2]/div[2]/div[2]/div[1]/div[1]/div[1]/table[1]/tbody[1]/tr[2]/td[25]')
+        data.append(first_value)
 
-        # 2. PACKING (Productivity)
+        # Segundo link
         page.goto("https://spx.shopee.com.br/#/dashboard/toProductivity?page_type=Outbound")
         page.wait_for_timeout(10000)
-        # th[4] = 1ª coluna de hora (Atual) | th[5] = 2ª coluna de hora (Anterior)
-        packing_atual = page.inner_text('xpath=/html/body/div[1]/div/div[2]/div[2]/div/div/div/div[2]/div[2]/div/div[2]/div/div[1]/div[1]/div[1]/div/div[1]/div[2]/div/div/div/table/thead/tr[2]/th[4]/div/div')
-        packing_ant = page.inner_text('xpath=/html/body/div[1]/div/div[2]/div[2]/div/div/div/div[2]/div[2]/div/div[2]/div/div[1]/div[1]/div[1]/div/div[1]/div[2]/div/div/div/table/thead/tr[2]/th[5]/div/div')
-        data_atual.append(packing_atual)
-        data_anterior.append(packing_ant)
-        print("   [OK] Packing")
+        page.wait_for_selector('xpath=/html/body/div[1]/div/div[2]/div[2]/div/div/div/div[2]/div[2]/div/div[2]/div/div[1]/div[1]/div[1]/div/div[1]/div[2]/div/div/div/table/thead/tr[2]/th[4]/div/div', timeout=30000)
+        second_value = page.inner_text('xpath=/html/body/div[1]/div/div[2]/div[2]/div/div/div/div[2]/div[2]/div/div[2]/div/div[1]/div[1]/div[1]/div/div[1]/div[2]/div/div/div/table/thead/tr[2]/th[4]/div/div')
+        data.append(second_value)
 
-        # 3. ASSIGNMENT
+        # Terceiro dado
         page.click('xpath=/html/body/div[1]/div/div[2]/div[2]/div/div/div/div[2]/div[2]/div/div[1]/div[1]/div/div/div[1]/div/div/div/div/div[3]')
         page.wait_for_timeout(10000)
-        assign_atual = page.inner_text('xpath=/html/body/div[1]/div/div[2]/div[2]/div/div/div/div[2]/div[2]/div/div[2]/div/div[1]/div[1]/div[1]/div/div[1]/div[2]/div/div/div/table/thead/tr[2]/th[4]/div/div')
-        assign_ant = page.inner_text('xpath=/html/body/div[1]/div/div[2]/div[2]/div/div/div/div[2]/div[2]/div/div[2]/div/div[1]/div[1]/div[1]/div/div[1]/div[2]/div/div/div/table/thead/tr[2]/th[5]/div/div')
-        data_atual.append(assign_atual)
-        data_anterior.append(assign_ant)
-        print("   [OK] Assignment")
+        page.wait_for_selector('xpath=/html/body/div[1]/div/div[2]/div[2]/div/div/div/div[2]/div[2]/div/div[2]/div/div[1]/div[1]/div[1]/div/div[1]/div[2]/div/div/div/table/thead/tr[2]/th[4]/div/div', timeout=30000)
+        third_value = page.inner_text('xpath=/html/body/div[1]/div/div[2]/div[2]/div/div/div/div[2]/div[2]/div/div[2]/div/div[1]/div[1]/div[1]/div/div[1]/div[2]/div/div/div/table/thead/tr[2]/th[4]/div/div')
+        data.append(third_value)
 
-        # 4. 3PL HANDOVER
+        # Quarto dado
         page.click('xpath=/html/body/div[1]/div/div[2]/div[2]/div/div/div/div[2]/div[2]/div/div[1]/div[1]/div/div/div[1]/div/div/div/div/div[4]')
         page.wait_for_timeout(10000)
-        threepl_atual = page.inner_text('xpath=/html/body/div[1]/div/div[2]/div[2]/div/div/div/div[2]/div[2]/div/div[2]/div/div[1]/div[1]/div[1]/div/div[1]/div[2]/div/div/div/table/thead/tr[2]/th[4]/div/div')
-        threepl_ant = page.inner_text('xpath=/html/body/div[1]/div/div[2]/div[2]/div/div/div/div[2]/div[2]/div/div[2]/div/div[1]/div[1]/div[1]/div/div[1]/div[2]/div/div/div/table/thead/tr[2]/th[5]/div/div')
-        data_atual.append(threepl_atual)
-        data_anterior.append(threepl_ant)
-        print("   [OK] 3PL")
+        page.wait_for_selector('xpath=/html/body/div[1]/div/div[2]/div[2]/div/div/div/div[2]/div[2]/div/div[2]/div/div[1]/div[1]/div[1]/div/div[1]/div[2]/div/div/div/table/thead/tr[2]/th[4]/div/div', timeout=30000)
+        page.wait_for_timeout(20000)
+        fourth_value = page.inner_text('xpath=/html/body/div[1]/div/div[2]/div[2]/div/div/div/div[2]/div[2]/div/div[2]/div/div[1]/div[1]/div[1]/div/div[1]/div[2]/div/div/div/table/thead/tr[2]/th[4]/div/div')
+        data.append(fourth_value)
 
     except Exception as e:
         print(f"Erro ao coletar dados: {e}")
         raise
-        
-    return data_anterior, data_atual
+    return data
 
-def update_google_sheets(data_anterior, data_atual):
-    print("\n📝 Conectando ao Google Sheets...")
+def update_google_sheets(data):
     scope = ["https://www.googleapis.com/auth/spreadsheets", "https://www.googleapis.com/auth/drive"]
     creds = ServiceAccountCredentials.from_json_keyfile_name("hxh.json", scope)
     client = gspread.authorize(creds)
     sheet = client.open_by_url('https://docs.google.com/spreadsheets/d/1_ySESJhetl_zVvRB1azj-7FjaldHFOQK_DKDQYhNiyc/edit').worksheet("Reporte HxH")
 
     current_time = datetime.datetime.now(timezone)
-    hour = current_time.hour
-    
-    # Mapeamento estrito
-    if 7 <= hour <= 23:
-        row_anterior = hour - 5
-    elif hour == 0:
-        row_anterior = 19
-    elif 1 <= hour <= 6:
-        row_anterior = hour + 19
+    if 7 <= current_time.hour <= 23:
+        row_number = current_time.hour - 5
+    elif current_time.hour == 0:
+        row_number = 19
+    elif 1 <= current_time.hour <= 5:
+        row_number = current_time.hour + 19
     else:
-        print(f"Hora fora do intervalo: {hour}:{current_time.minute}")
+        print(f"Hora fora do intervalo programado: {current_time.hour}:{current_time.minute}")
         return
 
-    # Linha atual na planilha
-    row_atual = row_anterior + 1
-    if row_atual > 25:
-        row_atual = 2
-
-    # Trava e Gravação da Hora Anterior
-    if hour != 6:
-        if 2 <= row_anterior <= 25:
-            cell_range_ant = f'B{row_anterior}:E{row_anterior}'
-            sheet.update(values=[data_anterior], range_name=cell_range_ant)
-            print(f"✅ HORA ANTERIOR inserida na linha {row_anterior} ({cell_range_ant}).")
+    if 2 <= row_number <= 25:
+        cell_range = f'B{row_number}:F{row_number}'
+        values = [data]
+        sheet.update(cell_range, values)
+        print(f"Dados atualizados na linha {row_number} ({cell_range})")
     else:
-        print("⚠️ Virada de diária (06:xx). Ignorando HORA ANTERIOR (linha 25) para não sujar a planilha limpa.")
-
-    # Gravação da Hora Atual
-    if 2 <= row_atual <= 25:
-        cell_range_atu = f'B{row_atual}:E{row_atual}'
-        sheet.update(values=[data_atual], range_name=cell_range_atu)
-        print(f"✅ HORA ATUAL inserida na linha {row_atual} ({cell_range_atu}).")
+        print(f"Hora inválida para atualização: {current_time.hour}:{current_time.minute}")
 
 def main():
     with sync_playwright() as p:
         browser = p.chromium.launch(headless=True, args=["--no-sandbox", "--disable-dev-shm-usage"])
-        context = browser.new_context(accept_downloads=True, viewport={'width': 1920, 'height': 1080})
+        context = browser.new_context(accept_downloads=True)
         page = context.new_page()
 
         try:
             login(page)
-            data_anterior, data_atual = get_dual_data(page)
-            update_google_sheets(data_anterior, data_atual)
-            print("\n🚀 Processo concluído.")
+            data = get_data(page)
+            update_google_sheets(data)
+            print("Dados atualizados com sucesso.")
+
         except Exception as e:
-            print(f"❌ Erro: {e}")
+            print(f"Erro durante o processo: {e}")
         finally:
             browser.close()
 
