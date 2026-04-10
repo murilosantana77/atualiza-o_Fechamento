@@ -10,8 +10,6 @@ timezone = pytz.timezone('America/Sao_Paulo')
 
 # Diretório de download para GitHub Actions
 download_dir = "/tmp"
-
-# Cria o diretório, se não existir
 os.makedirs(download_dir, exist_ok=True)
 
 def login(page):
@@ -33,7 +31,6 @@ def get_data(page):
     try:
         # Primeiro link
         page.goto("https://spx.shopee.com.br/#/dashboard/facility-soc/historical-data")
-        #page.wait_for_selector('xpath=//*[@id="mgmt-dashboard-content"]/div/div/div[2]/div/div[3]/div[2]/div/div[2]/div[1]/div/div/div[2]/div[2]/div[1]/div/div[2]/div/div/canvas', timeout=45000)
         page.wait_for_timeout(10000)
         first_value = page.inner_text('xpath=/html[1]/body[1]/div[1]/div[1]/div[2]/div[2]/div[1]/div[1]/div[1]/div[1]/div[2]/div[1]/div[2]/div[2]/div[1]/div[2]/div[1]/div[1]/div[1]/div[2]/div[2]/div[2]/div[1]/div[1]/div[1]/table[1]/tbody[1]/tr[2]/td[25]')
         data.append(first_value)
@@ -72,23 +69,39 @@ def update_google_sheets(data):
     sheet = client.open_by_url('https://docs.google.com/spreadsheets/d/1_ySESJhetl_zVvRB1azj-7FjaldHFOQK_DKDQYhNiyc/edit').worksheet("Reporte HxH")
 
     current_time = datetime.datetime.now(timezone)
-    if 7 <= current_time.hour <= 23:
-        row_number = current_time.hour - 5
-    elif current_time.hour == 0:
-        row_number = 19
-    elif 1 <= current_time.hour <= 5:
-        row_number = current_time.hour + 19
+    hour = current_time.hour
+    
+    # 1. Mapeamento da linha anterior
+    if 7 <= hour <= 23:
+        row_anterior = hour - 5
+    elif hour == 0:
+        row_anterior = 19
+    elif 1 <= hour <= 6:
+        row_anterior = hour + 19
     else:
-        print(f"Hora fora do intervalo programado: {current_time.hour}:{current_time.minute}")
+        print(f"Hora fora do intervalo: {hour}:{current_time.minute}")
         return
 
-    if 2 <= row_number <= 25:
-        cell_range = f'B{row_number}:F{row_number}'
-        values = [data]
-        sheet.update(cell_range, values)
-        print(f"Dados atualizados na linha {row_number} ({cell_range})")
+    # 2. Mapeamento da linha atual
+    row_atual = row_anterior + 1
+    if row_atual > 25:
+        row_atual = 2 # Volta para 06:00
+
+    # 3. Tratamento de Conflito com a Limpeza das 06:00
+    if hour == 6:
+        # Às 06:xx, o dia virou e a planilha foi limpa.
+        # Atualizamos APENAS a linha atual (06h) para não reescrever a linha 25 (05h) apagada.
+        rows_to_update = [row_atual]
+        print("Nova diária detectada (06:xx). Ignorando linha 25 para evitar sujeira de dados.")
     else:
-        print(f"Hora inválida para atualização: {current_time.hour}:{current_time.minute}")
+        rows_to_update = [row_anterior, row_atual]
+    
+    # 4. Execução da atualização
+    for row in rows_to_update:
+        if 2 <= row <= 25:
+            cell_range = f'B{row}:E{row}'
+            sheet.update(values=[data], range_name=cell_range)
+            print(f"Linha {row} ({cell_range}) atualizada com sucesso.")
 
 def main():
     with sync_playwright() as p:
@@ -100,10 +113,9 @@ def main():
             login(page)
             data = get_data(page)
             update_google_sheets(data)
-            print("Dados atualizados com sucesso.")
-
+            print("Processo concluído.")
         except Exception as e:
-            print(f"Erro durante o processo: {e}")
+            print(f"Erro: {e}")
         finally:
             browser.close()
 
