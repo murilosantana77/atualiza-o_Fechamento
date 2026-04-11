@@ -17,7 +17,7 @@ os.makedirs(download_dir, exist_ok=True)
 def login(page):
     page.goto("https://spx.shopee.com.br/")
     page.wait_for_selector('xpath=//*[@placeholder="Ops ID"]', timeout=15000)
-    page.fill('xpath=//*[@placeholder="Ops ID"]', 'Ops322349')
+    page.fill('xpath=//*[@placeholder="Ops ID"]', 'Ops8476')
     page.fill('xpath=//*[@placeholder="Senha"]', '@Shopee123')
     page.click('xpath=/html/body/div[1]/div/div[2]/div/div/div[1]/div[3]/form/div/div/button')
 
